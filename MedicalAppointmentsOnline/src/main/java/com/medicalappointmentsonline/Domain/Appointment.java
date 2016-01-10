@@ -31,8 +31,12 @@ public class Appointment {
 	@Column(name="hour")
 	private Date hour;
 	
-	public Appointment() {
-	}
+	@ManyToOne
+	@JoinColumn(name="app_type_id")
+	private AppointmentType appointmentType;
+	
+
+	public Appointment() {}
 
 	public Appointment(Date date, Date hour) {
 		super();
@@ -88,5 +92,13 @@ public class Appointment {
 
 	public void setHour(Date hour) {
 		this.hour = hour;
+	}
+	
+	public AppointmentType getAppointmentType() {
+		return appointmentType;
+	}
+
+	public void setAppointmentType(AppointmentType appointmentType) {
+		this.appointmentType = appointmentType;
 	}
 }
