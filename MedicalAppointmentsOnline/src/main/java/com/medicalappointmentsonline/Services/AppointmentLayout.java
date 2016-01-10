@@ -242,6 +242,7 @@ public class AppointmentLayout extends CustomComponent {
 	        	appointment.setStaff((Staff) item.getItemProperty("staff").getValue());
 	        	appointment.setDate((Date) item.getItemProperty("date").getValue());
 	        	appointment.setHour((Date) item.getItemProperty("date").getValue());
+	        	appointment.setAppointmentType((AppointmentType) item.getItemProperty("appointmentType").getValue());
 	        	ConfirmationWindow.open(appointment);
         	}
         });
@@ -321,14 +322,11 @@ public class AppointmentLayout extends CustomComponent {
         return cal.getTime();
     }
     
-    @SuppressWarnings("deprecation")
 	private void generateStaffTable(){
-    	try {
-			BeanItemContainer<Staff> tmp = new BeanItemContainer<Staff>(staff);
-			staffTable.setContainerDataSource(tmp);
-		} catch (IllegalArgumentException e) {
-			staffTable.setContainerDataSource(new BeanItemContainer<>(Staff.class));
-		}
+    	
+		BeanItemContainer<Staff> tmp = new BeanItemContainer<>(Staff.class, staff);
+		staffTable.setContainerDataSource(tmp);
+		
         staffTable.setVisibleColumns("name", "surname");
         staffTable.setColumnHeader("name", "Imię");
         staffTable.setColumnHeader("surname", "Nazwisko");
@@ -340,14 +338,11 @@ public class AppointmentLayout extends CustomComponent {
         appointmentTable.setColumnHeader("staff", "Lekarz");
     }
     
-    @SuppressWarnings("deprecation")
 	private void generateAppointments(){       
-        try {
-			appointmentList = h2a(hours, dateSelect.getValue());
-			appointmentTable.setContainerDataSource(new BeanItemContainer<Appointment>(appointmentList));
-		} catch (IllegalArgumentException e) {
-			appointmentTable.setContainerDataSource(new BeanItemContainer<>(Appointment.class));
-		}
+        
+		appointmentList = h2a(hours, dateSelect.getValue());
+		appointmentTable.setContainerDataSource(new BeanItemContainer<>(Appointment.class, appointmentList));
+		
         setAppointmentsTableColumns();
     }
     
@@ -368,6 +363,7 @@ public class AppointmentLayout extends CustomComponent {
 					Date tmpdate;
 					Appointment appointment = new Appointment();
 					appointment.setStaff(hour.getStaff());
+					appointment.setAppointmentType(hour.getAppointmentType());
 					tmpdate = calendar.getTime();
 					appointment.setHour(tmpdate);
 					appointment.setDate(tmpdate);
