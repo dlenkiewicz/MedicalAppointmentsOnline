@@ -122,22 +122,14 @@ public class HistoryLayout extends CustomComponent {
 			 	}
 		 	});
 		 
-		 historyTable.addGeneratedColumn("id", new ColumnGenerator(){			 
-			 @SuppressWarnings("rawtypes")
-			public Object generateCell(Table source, Object itemId, Object columnId) {
-				 	Property prop = source.getItem(itemId).getItemProperty(columnId); 
-			        Query query = entitymanager.createQuery( "SELECT h FROM Hours h, Appointment a "
-			        		+ "WHERE h.staff.id = a.staff.id AND a.hour >= h.hstart AND "
-			        		+ "a.hour <= h.hend AND SQL('EXTRACT(dow from ?)', a.date) + 1 = h.day AND "
-			        		+ "a.id = :value1" );
-			        query.setParameter("value1",(int) prop.getValue());
-			        query.setMaxResults(1);
-			        Hours hour = (Hours) query.getResultList().get(0);
-			        return hour.getAppointmentType().getType();
+		 historyTable.addGeneratedColumn("appointmentType", new ColumnGenerator(){			 
+			 public Object generateCell(Table source, Object itemId, Object columnId) {
+				 	Property prop = source.getItem(itemId).getItemProperty(columnId); 			       
+			        return ((AppointmentType) prop.getValue()).getType();
 			    }
 			});
-		 
-		 historyTable.setVisibleColumns("date", "hour", "staff", "id", "Action");
+
+		 historyTable.setVisibleColumns("date", "hour", "staff", "appointmentType", "Action");
 		 historyTable.setColumnHeader("date", "Dzień");
 		 historyTable.setColumnHeader("hour", "Godzina");
 		 historyTable.setColumnHeader("staff", "Lekarz");
