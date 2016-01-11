@@ -10,6 +10,8 @@ import javax.persistence.Persistence;
 import javax.persistence.Query;
 import javax.persistence.RollbackException;
 
+import org.vaadin.dialogs.ConfirmDialog;
+
 import com.vaadin.data.Item;
 import com.vaadin.data.Property;
 import com.vaadin.data.util.BeanItemContainer;
@@ -30,6 +32,7 @@ import com.vaadin.ui.Notification;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.Table.ColumnGenerator;
 import com.vaadin.ui.TextField;
+import com.vaadin.ui.UI;
 import com.vaadin.ui.themes.ValoTheme;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
@@ -44,8 +47,8 @@ public class HistoryLayout extends CustomComponent {
 	private Table historyTable;
 	private EntityManagerFactory emfactory;
 	private EntityManager entitymanager;
+	private User user;
 	
-	@SuppressWarnings("deprecation")
 	public HistoryLayout(){
 		emfactory = Persistence.createEntityManagerFactory( "mao" );
 	 	entitymanager = emfactory.createEntityManager();
@@ -57,12 +60,9 @@ public class HistoryLayout extends CustomComponent {
 		Query query = entitymanager.createQuery( "SELECT u FROM User u where u.email = :value1" );
 	 	query.setParameter("value1", String.valueOf(VaadinSession.getCurrent().getAttribute(("user"))));
 		try {
-			User user = (User) query.getSingleResult();
-			BeanItemContainer<Appointment> tmp = new BeanItemContainer<Appointment>(user.getAppointments());
-			historyTable.setContainerDataSource(tmp);
+			user = (User) query.getSingleResult();
+			historyTable.setContainerDataSource(new BeanItemContainer<>(Appointment.class, user.getAppointments()));
 		} catch (NoResultException e) {
-			historyTable.setContainerDataSource(new BeanItemContainer<>(Appointment.class));
-		} catch (IllegalArgumentException e){
 			historyTable.setContainerDataSource(new BeanItemContainer<>(Appointment.class));
 		}
 		setHoursTableColumns();
@@ -73,20 +73,26 @@ public class HistoryLayout extends CustomComponent {
 	
 	 private void setHoursTableColumns(){
 		 
-		 historyTable.addGeneratedColumn("Action", new ColumnGenerator() { 
-			    @SuppressWarnings("rawtypes")
+		 historyTable.addGeneratedColumn("", new ColumnGenerator() { 			    
 				@Override
 			    public Object generateCell(final Table source, final Object itemId, Object columnId) {
-			        Button btn = new Button("Delete", new ClickListener() {
+			        Button btn = new Button("Odwołaj wizytę", new ClickListener() {
 						@Override
-						public void buttonClick(ClickEvent event) {		
-							entitymanager.getTransaction().begin();
-							Property prop = source.getItem(itemId).getItemProperty("id");
-							Query query = entitymanager.createQuery("DELETE FROM Appointment a WHERE a.id = :value1");
-							query.setParameter("value1", (int) prop.getValue());
-							query.executeUpdate();
-							entitymanager.getTransaction().commit();
+						public void buttonClick(ClickEvent event) {
+							ConfirmDialog.show(UI.getCurrent(), "Proszę potwierdź:", "Czy na pewno chcesz odwołać wizytę?",
+							        "Tak", "Nie", new ConfirmDialog.Listener() {
 
+							            public void onClose(ConfirmDialog dialog) {
+							                if (dialog.isConfirmed()) {
+							                	Property prop = source.getItem(itemId).getItemProperty("id");							
+												entitymanager.getTransaction().begin();							
+												Appointment appointment = entitymanager.find(Appointment.class, prop.getValue());							
+												user.removeAppointment(appointment);							
+												entitymanager.getTransaction().commit();											
+												source.removeItem(itemId);
+							                } else {}
+							            }
+							        });
 						}
 					});
 			        btn.addStyleName(ValoTheme.BUTTON_TINY);
@@ -103,7 +109,6 @@ public class HistoryLayout extends CustomComponent {
 			});
 		 
 		 historyTable.addGeneratedColumn("hour", new ColumnGenerator(){			 
-			 @SuppressWarnings("rawtypes")
 			public Object generateCell(Table source, Object itemId, Object columnId) {
 			        Property prop = source.getItem(itemId).getItemProperty(columnId);
 			        SimpleDateFormat sdftime = new SimpleDateFormat("k:mm");
@@ -113,7 +118,6 @@ public class HistoryLayout extends CustomComponent {
 			});
 		 	 
 		 historyTable.addGeneratedColumn("date", new ColumnGenerator(){
-			 @SuppressWarnings("rawtypes")
 			public Object generateCell(Table source, Object itemId, Object columnId) {      
 			        Property prop = source.getItem(itemId).getItemProperty(columnId);       
 			        SimpleDateFormat sdfday = new SimpleDateFormat("dd.MM.yyyy");
@@ -129,11 +133,11 @@ public class HistoryLayout extends CustomComponent {
 			    }
 			});
 
-		 historyTable.setVisibleColumns("date", "hour", "staff", "appointmentType", "Action");
+		 historyTable.setVisibleColumns("date", "hour", "staff", "appointmentType", "");
 		 historyTable.setColumnHeader("date", "Dzień");
 		 historyTable.setColumnHeader("hour", "Godzina");
 		 historyTable.setColumnHeader("staff", "Lekarz");
-		 historyTable.setColumnHeader("id", "Rodzaj wizyty");
+		 historyTable.setColumnHeader("appointmentType", "Rodzaj wizyty");
 		 
 		 historyTable.sort(new Object[]{"date","hour"}, new boolean[]{true,true});
 		 
