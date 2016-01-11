@@ -376,7 +376,7 @@ public class AppointmentLayout extends CustomComponent {
 	                if(query.getResultList().size() == 0) {
 						appointments.add(appointment);
 					}
-					calendar.add(Calendar.MINUTE, 15);				
+					calendar.add(Calendar.MINUTE, hour.getAppointmentType().getTimeLength());				
 				} while(calendar.get(Calendar.HOUR_OF_DAY) < tmp2.get(Calendar.HOUR_OF_DAY));
 			}
 		}
