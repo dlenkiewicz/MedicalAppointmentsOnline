@@ -42,8 +42,14 @@ public class User {
 	@Column(name="password", length=50)
 	private String password;
 	
-	@OneToMany(mappedBy="user", cascade=CascadeType.ALL)
+	@OneToMany(mappedBy="user", cascade=CascadeType.ALL, orphanRemoval=true)
 	private List<Appointment> appointments;
+	
+	public void removeAppointment(Appointment appointment){
+		if(this.appointments != null){
+			appointments.remove(appointment);
+		}
+	}
 
 	public void addAppointment(Appointment appointment) {
         this.appointments.add(appointment);
