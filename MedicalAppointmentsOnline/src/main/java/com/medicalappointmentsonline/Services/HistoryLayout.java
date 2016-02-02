@@ -1,6 +1,7 @@
 package com.medicalappointmentsonline.Services;
 
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 import javax.persistence.EntityManager;
@@ -96,10 +97,12 @@ public class HistoryLayout extends CustomComponent {
 						}
 					});
 			        btn.addStyleName(ValoTheme.BUTTON_TINY);
-			        Property prop = source.getItem(itemId).getItemProperty("date");
+			        Property dateProp = source.getItem(itemId).getItemProperty("date");
+			        Property hourProp = source.getItem(itemId).getItemProperty("hour");
 			        
-			        Date todaysDate = AppointmentLayout.getTodaysDate();
-			        if(todaysDate.after((Date) prop.getValue())){
+			        Date todaysDate = getTodaysDate();
+			        if(todaysDate.after((Date) dateProp.getValue()) || (!todaysDate.before((Date) dateProp.getValue()) && 
+			        		System.currentTimeMillis() - todaysDate.getTime() - 3600000 > ((Date) hourProp.getValue()).getTime())){
 			        	return null;
 			        }
 			        else{
@@ -143,4 +146,15 @@ public class HistoryLayout extends CustomComponent {
 		 
 		 historyTable.setWidth("50%");
 	 }
+	 
+	 public Date getTodaysDate(){
+	    	Date date = new Date();
+	        Calendar cal = Calendar.getInstance();
+	        cal.setTime(date);
+	        cal.set(Calendar.HOUR_OF_DAY, 0);
+	        cal.set(Calendar.MINUTE, 0);
+	        cal.set(Calendar.SECOND, 0);
+	        cal.set(Calendar.MILLISECOND, 0);
+	        return cal.getTime();
+	    }
 }

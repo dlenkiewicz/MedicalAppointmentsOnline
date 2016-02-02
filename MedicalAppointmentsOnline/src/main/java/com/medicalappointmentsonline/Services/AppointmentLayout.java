@@ -304,7 +304,7 @@ public class AppointmentLayout extends CustomComponent {
         hours = query.getResultList();
     }
     
-    public static Date getTodaysDate(){
+    public Date getTodaysDate(){
     	Date date = new Date();
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
@@ -353,13 +353,51 @@ public class AppointmentLayout extends CustomComponent {
 		if(hours != null && date!=null){
 			Calendar calendar = Calendar.getInstance();
 			for(Hours hour : hours) {
+				int appointmentTimeLength = hour.getAppointmentType().getTimeLength();
+				
 				calendar.setTime(date);
-				Calendar tmp1 = Calendar.getInstance();
-				Calendar tmp2 = Calendar.getInstance();
-				tmp1.setTime(hour.getHstart());
-				tmp2.setTime(hour.getHend());
-				calendar.add(Calendar.HOUR_OF_DAY, tmp1.get(Calendar.HOUR_OF_DAY));
-				do {		
+				
+				Calendar startTime = Calendar.getInstance();
+				Calendar endTime = Calendar.getInstance();
+				Calendar currentTime = Calendar.getInstance();
+				
+				currentTime.setTime(new Date());				
+				startTime.setTime(hour.getHstart());
+				endTime.setTime(hour.getHend());
+				
+				if(date.equals(getTodaysDate())){
+					if(currentTime.get(Calendar.HOUR_OF_DAY)>startTime.get(Calendar.HOUR_OF_DAY)){
+						if(currentTime.get(Calendar.HOUR_OF_DAY)>endTime.get(Calendar.HOUR_OF_DAY)){
+							continue;
+						} else if (currentTime.get(Calendar.HOUR_OF_DAY)==endTime.get(Calendar.HOUR_OF_DAY)){
+							if(currentTime.get(Calendar.MINUTE)>endTime.get(Calendar.MINUTE)-appointmentTimeLength){
+								continue;
+							} else {
+								calendar.add(Calendar.HOUR_OF_DAY, currentTime.get(Calendar.HOUR_OF_DAY));
+								calendar.add(Calendar.MINUTE, (currentTime.get(Calendar.MINUTE)/appointmentTimeLength + 1)*appointmentTimeLength);
+							}
+						} else {
+							calendar.add(Calendar.HOUR_OF_DAY, currentTime.get(Calendar.HOUR_OF_DAY));
+							calendar.add(Calendar.MINUTE, (currentTime.get(Calendar.MINUTE)/appointmentTimeLength + 1)*appointmentTimeLength);
+						}
+					} else if(currentTime.get(Calendar.HOUR_OF_DAY) == startTime.get(Calendar.HOUR_OF_DAY)){
+						calendar.add(Calendar.HOUR_OF_DAY, currentTime.get(Calendar.HOUR_OF_DAY));
+						if (currentTime.get(Calendar.MINUTE)>startTime.get(Calendar.MINUTE)){
+							calendar.add(Calendar.MINUTE, (currentTime.get(Calendar.MINUTE)/appointmentTimeLength + 1)*appointmentTimeLength);
+						} else {
+							calendar.add(Calendar.MINUTE, startTime.get(Calendar.MINUTE));
+						}
+					} else {
+						calendar.add(Calendar.HOUR_OF_DAY, startTime.get(Calendar.HOUR_OF_DAY));
+						calendar.add(Calendar.MINUTE, startTime.get(Calendar.MINUTE));
+					}		
+				} else {
+					calendar.add(Calendar.HOUR_OF_DAY, startTime.get(Calendar.HOUR_OF_DAY));
+					calendar.add(Calendar.MINUTE, startTime.get(Calendar.MINUTE));
+				}
+				while(calendar.get(Calendar.HOUR_OF_DAY) < endTime.get(Calendar.HOUR_OF_DAY) || 
+						(calendar.get(Calendar.HOUR_OF_DAY) == endTime.get(Calendar.HOUR_OF_DAY) && 
+							calendar.get(Calendar.MINUTE) < endTime.get(Calendar.MINUTE))) {		
 					Date tmpdate;
 					Appointment appointment = new Appointment();
 					appointment.setStaff(hour.getStaff());
@@ -377,7 +415,7 @@ public class AppointmentLayout extends CustomComponent {
 						appointments.add(appointment);
 					}
 					calendar.add(Calendar.MINUTE, hour.getAppointmentType().getTimeLength());				
-				} while(calendar.get(Calendar.HOUR_OF_DAY) < tmp2.get(Calendar.HOUR_OF_DAY));
+				}
 			}
 		}
 		entitymanager.close();
