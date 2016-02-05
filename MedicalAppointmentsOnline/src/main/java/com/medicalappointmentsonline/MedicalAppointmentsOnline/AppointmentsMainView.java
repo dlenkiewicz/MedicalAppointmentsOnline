@@ -2,6 +2,7 @@ package com.medicalappointmentsonline.MedicalAppointmentsOnline;
  
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewChangeListener.ViewChangeEvent;
+import com.vaadin.server.VaadinSession;
 import com.vaadin.ui.Component;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.HorizontalLayout;
@@ -19,12 +20,13 @@ public class AppointmentsMainView extends CustomComponent implements View {
         HorizontalLayout horizontalLayout = new HorizontalLayout();
         horizontalLayout.addStyleName("mainview");
         horizontalLayout.setSizeFull();     
+        if(VaadinSession.getCurrent().getAttribute(("user"))!=null ){
+        	Component content = new AppointmentLayout();
         
-        Component content = new AppointmentLayout();
-        
-        horizontalLayout.addComponent(new MenuView());
-        horizontalLayout.addComponent(content);
-        horizontalLayout.setExpandRatio(content, 1.0f);
+        	horizontalLayout.addComponent(new MenuView());
+        	horizontalLayout.addComponent(content);
+        	horizontalLayout.setExpandRatio(content, 1.0f);
+        }
         
         setCompositionRoot(horizontalLayout);
     }

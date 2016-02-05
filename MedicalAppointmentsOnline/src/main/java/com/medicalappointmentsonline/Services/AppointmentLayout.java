@@ -1,5 +1,6 @@
 package com.medicalappointmentsonline.Services;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -9,6 +10,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.Query;
+
+import org.vaadin.dialogs.ConfirmDialog;
 
 import com.vaadin.addon.jpacontainer.JPAContainer;
 import com.vaadin.addon.jpacontainer.JPAContainerFactory;
@@ -22,17 +25,23 @@ import com.vaadin.data.validator.DateRangeValidator;
 import com.vaadin.event.ItemClickEvent;
 import com.vaadin.event.ItemClickEvent.ItemClickListener;
 import com.vaadin.server.Page;
+import com.vaadin.server.VaadinSession;
 import com.vaadin.shared.Position;
 import com.vaadin.shared.MouseEventDetails.MouseButton;
 import com.vaadin.shared.ui.combobox.FilteringMode;
 import com.vaadin.shared.ui.datefield.Resolution;
+import com.vaadin.ui.Button;
 import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Table;
+import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
+import com.vaadin.ui.Button.ClickEvent;
+import com.vaadin.ui.Button.ClickListener;
+import com.vaadin.ui.Table.ColumnGenerator;
 import com.vaadin.ui.themes.ValoTheme;
 
 import com.medicalappointmentsonline.Domain.*;
@@ -103,9 +112,10 @@ public class AppointmentLayout extends CustomComponent {
         appointmentTable = new Table("Wybierz termin wizyty:");
         appointmentTable.setImmediate(true);
         appointmentTable.setContainerDataSource(new BeanItemContainer<>(Appointment.class));
-        appointmentTable.setSelectable(true);
+        appointmentTable.setSelectable(false);
         appointmentTable.addStyleName(ValoTheme.TABLE_BORDERLESS);
         appointmentTable.setWidth("70%");
+        generateAppointmentButton();
         setAppointmentsTableColumns();
         
         disableListener = false;
@@ -234,18 +244,6 @@ public class AppointmentLayout extends CustomComponent {
 				generateAppointments();
 			}
 		});      
-        appointmentTable.addItemClickListener(new ItemClickListener () {
-        	@Override
-        	public void itemClick(ItemClickEvent event) {
-	        	Item item = appointmentTable.getItem(event.getItemId());
-	        	Appointment appointment = new Appointment();
-	        	appointment.setStaff((Staff) item.getItemProperty("staff").getValue());
-	        	appointment.setDate((Date) item.getItemProperty("date").getValue());
-	        	appointment.setHour((Date) item.getItemProperty("date").getValue());
-	        	appointment.setAppointmentType((AppointmentType) item.getItemProperty("appointmentType").getValue());
-	        	ConfirmationWindow.open(appointment);
-        	}
-        });
         
         staffTable.addItemClickListener(new ItemClickListener () {
         	@Override
@@ -331,9 +329,71 @@ public class AppointmentLayout extends CustomComponent {
         staffTable.setColumnHeader("name", "Imię");
         staffTable.setColumnHeader("surname", "Nazwisko");
     }
+	
+	private void generateAppointmentButton(){
+		Query query = entitymanager.createQuery( "SELECT u FROM User u where u.email = :value1" );
+	 	query.setParameter("value1", String.valueOf(VaadinSession.getCurrent().getAttribute(("user"))));
+	 	User user = (User) query.getResultList().get(0);
+	 	
+	 	SimpleDateFormat sdfdate = new SimpleDateFormat("dd.MM.yyyy");
+		SimpleDateFormat sdftime = new SimpleDateFormat("k:mm");
+		
+		appointmentTable.addGeneratedColumn("", new ColumnGenerator() { 			    
+			@Override
+		    public Object generateCell(final Table source, final Object itemId, Object columnId) {
+		        Button btn = new Button("Umów wizytę", new ClickListener() {	   
+		        	
+		        	Property staffProp = source.getItem(itemId).getItemProperty("staff");	
+					Property dateProp = source.getItem(itemId).getItemProperty("date");	
+					Property hourProp = source.getItem(itemId).getItemProperty("hour");
+					Property appProp = source.getItem(itemId).getItemProperty("appointmentType");
+						
+					@Override
+					public void buttonClick(ClickEvent event) {
+						ConfirmDialog.show(UI.getCurrent(), "Proszę potwierdź:", "Zamierzasz zarezerwować wizytę na imię i naziwsko " + user.getName() + " " + 
+								user.getSurname() + ", która odbędzie się " + sdfdate.format((Date) dateProp.getValue()) + " roku, a " + 
+								" lekarz " + ((Staff) staffProp.getValue()).getName() + " " + ((Staff) staffProp.getValue()).getSurname() + 
+								" będzie Cię oczekiwać o godzinie " + sdftime.format((Date) hourProp.getValue()) + 
+								" w swoim gabinecie.\n\n Jeżeli wszystko się zgadza potwierdź rezerwację terminu wizyty" +
+								" klikając przycisk 'Potwierdź",
+						        "Potwierdź", "Anuluj", new ConfirmDialog.Listener() {
+
+						            public void onClose(ConfirmDialog dialog) {
+						                if (dialog.isConfirmed()) {
+											Appointment appointment = new Appointment();
+						                	
+																								
+											appointment.setStaff((Staff) staffProp.getValue());
+								        	appointment.setDate((Date) dateProp.getValue());						
+								        	appointment.setHour((Date) hourProp.getValue());
+								        	appointment.setAppointmentType((AppointmentType) appProp.getValue());
+								    	 	
+								        	appointment.setUser(user);
+											
+											entitymanager.getTransaction().begin();
+											entitymanager.persist(appointment);
+											entitymanager.getTransaction().commit();
+											
+											getUI().getNavigator().navigateTo(AppointmentsMainView.NAME);
+											Notification success = new Notification(
+							                        "Wizyta zarejestrowana pomyślnie");
+							                success.setDelayMsec(2000);
+							                success.setStyleName("bar success small");
+							                success.setPosition(Position.TOP_CENTER);
+							                success.show(Page.getCurrent());
+						                } else {}
+						            }
+						        });
+					}
+				});
+		        btn.addStyleName(ValoTheme.BUTTON_TINY);		       
+		        return btn;
+		    }
+		});
+	}
     
     private void setAppointmentsTableColumns(){
-        appointmentTable.setVisibleColumns("date", "staff");
+        appointmentTable.setVisibleColumns("date", "staff", "");
         appointmentTable.setColumnHeader("date", "Dzień i godzina");
         appointmentTable.setColumnHeader("staff", "Lekarz");
     }
@@ -364,6 +424,9 @@ public class AppointmentLayout extends CustomComponent {
 				currentTime.setTime(new Date());				
 				startTime.setTime(hour.getHstart());
 				endTime.setTime(hour.getHend());
+				
+				//'ugly' code where we want to hide appointments from current day based on hour.
+				//TODO make it better
 				
 				if(date.equals(getTodaysDate())){
 					if(currentTime.get(Calendar.HOUR_OF_DAY)>startTime.get(Calendar.HOUR_OF_DAY)){

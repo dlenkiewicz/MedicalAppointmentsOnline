@@ -1,5 +1,6 @@
 package com.medicalappointmentsonline.MedicalAppointmentsOnline;
 
+import com.vaadin.annotations.StyleSheet;
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.Widgetset;
 import com.vaadin.navigator.Navigator;
@@ -16,6 +17,7 @@ import com.vaadin.ui.UI;
 @SuppressWarnings("serial")
 @Theme("MAOtheme")
 @Widgetset("com.medicalappointmentsonline.MedicalAppointmentsOnline.MAOwidgetset")
+@StyleSheet({"https://fonts.googleapis.com/css?family=Source+Sans+Pro"})
 public class AppointmentsUI extends UI {
 	public static final String PERSISTENCE_UNIT = "mao";
 
