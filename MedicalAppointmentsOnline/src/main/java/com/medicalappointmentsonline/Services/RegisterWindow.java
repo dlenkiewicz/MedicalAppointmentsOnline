@@ -69,7 +69,7 @@ public class RegisterWindow extends Window {
 		Responsive.makeResponsive(this);
 		setModal(true);
         setCloseShortcut(KeyCode.ESCAPE, null);
-		addStyleName("profile-window");
+		addStyleName("register-window");
 		setResizable(false);
         setClosable(false);
         setHeight(90.0f, Unit.PERCENTAGE);
@@ -100,7 +100,6 @@ public class RegisterWindow extends Window {
         root.setWidth(100.0f, Unit.PERCENTAGE);
         root.setSpacing(true);
         root.setMargin(true);
-		root.addStyleName("profile-form");
 		
 		FormLayout form = new FormLayout();
         form.setSizeFull();

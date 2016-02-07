@@ -35,6 +35,7 @@ import com.vaadin.ui.ComboBox;
 import com.vaadin.ui.CustomComponent;
 import com.vaadin.ui.DateField;
 import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Label;
 import com.vaadin.ui.Notification;
 import com.vaadin.ui.Table;
 import com.vaadin.ui.UI;
@@ -59,10 +60,13 @@ public class AppointmentLayout extends CustomComponent {
     private ComboBox specSelect;
     private ComboBox appTypeSelect;
     
+    private Button hoursButton;
+    
     private DateField dateSelect;
     
     private JPAContainer<Specialization> specs;
     private JPAContainer<AppointmentType> appointmentTypes;
+    
     
     private List<Staff> staff;
     private List<Hours> hours;
@@ -80,6 +84,7 @@ public class AppointmentLayout extends CustomComponent {
         content.setSpacing(true);
        
         VerticalLayout verticalLayout = new VerticalLayout();
+        verticalLayout.setSpacing(true);
         
         specs = JPAContainerFactory.make(Specialization.class,
                 AppointmentsUI.PERSISTENCE_UNIT);
@@ -93,9 +98,11 @@ public class AppointmentLayout extends CustomComponent {
         		getTodaysDate(), getMaxDate(), Resolution.DAY));
         dateSelect.setValue(getTodaysDate());
         
-        Query query2 = entitymanager.createQuery("SELECT s FROM Staff s");
+        Query query2 = entitymanager.createQuery("SELECT DISTINCT s FROM Staff s, Hours h WHERE s.id = h.staff.id");
         staff = query2.getResultList();      
         staffTable = new Table("Wybierz lekarza:");
+        staffTable.addStyleName(ValoTheme.TABLE_NO_VERTICAL_LINES);
+        staffTable.addStyleName(ValoTheme.TABLE_NO_HORIZONTAL_LINES);
         staffTable.setSelectable(true);
         generateStaffTable();
        
@@ -113,10 +120,19 @@ public class AppointmentLayout extends CustomComponent {
         appointmentTable.setImmediate(true);
         appointmentTable.setContainerDataSource(new BeanItemContainer<>(Appointment.class));
         appointmentTable.setSelectable(false);
-        appointmentTable.addStyleName(ValoTheme.TABLE_BORDERLESS);
+        appointmentTable.addStyleName(ValoTheme.TABLE_NO_VERTICAL_LINES);
+        appointmentTable.addStyleName(ValoTheme.TABLE_NO_HORIZONTAL_LINES);
         appointmentTable.setWidth("70%");
-        generateAppointmentButton();
+        generateAppointmentColumns();
         setAppointmentsTableColumns();
+        
+        hoursButton = new Button("Godziny pracy", new ClickListener() {
+			@Override
+			public void buttonClick(ClickEvent event) {
+				StaffHoursWindow.open(((Staff) staffTable.getValue()).getId());
+			}
+		});
+        hoursButton.setEnabled(false);
         
         disableListener = false;
         
@@ -140,6 +156,7 @@ public class AppointmentLayout extends CustomComponent {
 	                appTypeSelect.setValue(appTypeTmp.getId());
 		        			        			        		
 	                executeQueryStaffNull();
+	                hoursButton.setEnabled(false);
 	                
 	                Query query3 = entitymanager.createQuery("SELECT s FROM Staff s, AppointmentType a, Hours h "
 	                		+ "WHERE a.id = h.appointmentType.id AND h.staff.id = s.id AND a.id = :value1");
@@ -161,8 +178,10 @@ public class AppointmentLayout extends CustomComponent {
 	        	        		
         		if(staffTable.getValue()==null){
 	        		executeQueryStaffNull();
+	        		hoursButton.setEnabled(false);
 	        	}
 	        	else{
+	        		hoursButton.setEnabled(true);
 	        		if(specSelect.getValue()==null){
 	        			Object tmp = staffTable.getValue();
 		        		Query query = entitymanager.createQuery("SELECT sS FROM StaffSpecialization sS, Staff s, Hours h, AppointmentType a "
@@ -261,12 +280,14 @@ public class AppointmentLayout extends CustomComponent {
 						notif.show(Page.getCurrent());
         		    }
         	}
-        });             
+        });  
+        
         verticalLayout.addComponent(specSelect);
         verticalLayout.addComponent(appTypeSelect);
         verticalLayout.addComponent(dateSelect);
-        verticalLayout.addComponent(staffTable);
+        verticalLayout.addComponent(hoursButton);
         content.addComponent(verticalLayout);
+        content.addComponent(staffTable);
         content.addComponent(appointmentTable);
         setCompositionRoot(content);
     }
@@ -330,7 +351,7 @@ public class AppointmentLayout extends CustomComponent {
         staffTable.setColumnHeader("surname", "Nazwisko");
     }
 	
-	private void generateAppointmentButton(){
+	private void generateAppointmentColumns(){
 		Query query = entitymanager.createQuery( "SELECT u FROM User u where u.email = :value1" );
 	 	query.setParameter("value1", String.valueOf(VaadinSession.getCurrent().getAttribute(("user"))));
 	 	User user = (User) query.getResultList().get(0);
@@ -355,7 +376,7 @@ public class AppointmentLayout extends CustomComponent {
 								" lekarz " + ((Staff) staffProp.getValue()).getName() + " " + ((Staff) staffProp.getValue()).getSurname() + 
 								" będzie Cię oczekiwać o godzinie " + sdftime.format((Date) hourProp.getValue()) + 
 								" w swoim gabinecie.\n\n Jeżeli wszystko się zgadza potwierdź rezerwację terminu wizyty" +
-								" klikając przycisk 'Potwierdź",
+								" klikając przycisk 'Potwierdź'",
 						        "Potwierdź", "Anuluj", new ConfirmDialog.Listener() {
 
 						            public void onClose(ConfirmDialog dialog) {
@@ -390,11 +411,21 @@ public class AppointmentLayout extends CustomComponent {
 		        return btn;
 		    }
 		});
+		
+		appointmentTable.addGeneratedColumn("date", new ColumnGenerator(){			 
+			public Object generateCell(Table source, Object itemId, Object columnId) {
+			        Property prop = source.getItem(itemId).getItemProperty(columnId);
+			        SimpleDateFormat sdftime = new SimpleDateFormat("k:mm");
+			        Label label = new Label(sdftime.format( (Date) prop.getValue() ));
+			        return label;			        
+			    }
+			});
 	}
     
     private void setAppointmentsTableColumns(){
         appointmentTable.setVisibleColumns("date", "staff", "");
-        appointmentTable.setColumnHeader("date", "Dzień i godzina");
+        appointmentTable.setColumnWidth("date", 90);
+        appointmentTable.setColumnHeader("date", "Godzina");
         appointmentTable.setColumnHeader("staff", "Lekarz");
     }
     

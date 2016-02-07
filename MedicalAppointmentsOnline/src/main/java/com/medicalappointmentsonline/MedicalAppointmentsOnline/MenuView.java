@@ -21,10 +21,7 @@ public class MenuView extends CustomComponent {
 	
 	private Component buildContent() {
         final CssLayout menuContent = new CssLayout();
-        menuContent.addStyleName("sidebar");
         menuContent.addStyleName(ValoTheme.MENU_PART);
-        menuContent.addStyleName("no-vertical-drag-hints");
-        menuContent.addStyleName("no-horizontal-drag-hints");
         menuContent.setWidth(null);
         menuContent.setHeight("100%");
 

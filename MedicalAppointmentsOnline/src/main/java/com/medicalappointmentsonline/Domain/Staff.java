@@ -1,5 +1,7 @@
 package com.medicalappointmentsonline.Domain;
 
+import java.util.List;
+
 import javax.persistence.*;
 
 @Entity
@@ -16,6 +18,9 @@ public class Staff {
 	@Column(name="surname", length=50)
 	private String surname;
 	
+	@OneToMany(mappedBy="staff", cascade=CascadeType.ALL, orphanRemoval=true)
+	private List<Hours> hours;
+
 	@Override public String toString() {
 	return this.getName()+" "+this.getSurname();
 	}
@@ -50,5 +55,13 @@ public class Staff {
 
 	public void setSurname(String surname) {
 		this.surname = surname;
+	}
+	
+	public List<Hours> getHours() {
+		return hours;
+	}
+
+	public void setHours(List<Hours> hours) {
+		this.hours = hours;
 	}
 }

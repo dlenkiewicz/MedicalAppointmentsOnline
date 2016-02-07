@@ -16,7 +16,7 @@ public class Hours {
 	private Staff staff;
 	
 	@Column(name="day")
-	private Integer day;
+	private int day;
 	
 	@Temporal(TemporalType.TIME)
 	@Column(name="hour_start")
@@ -32,7 +32,7 @@ public class Hours {
 	
 	public Hours() {}
 
-	public Hours(HoursPK hoursPK, Integer day, Date hstart, Date hend) {
+	public Hours(HoursPK hoursPK, int day, Date hstart, Date hend) {
 		super();
 		this.hoursPK = hoursPK;
 		this.day = day;
@@ -56,7 +56,7 @@ public class Hours {
 		this.staff = staff;
 	}
 
-	public Integer getDay() {
+	public int getDay() {
 		return day;
 	}
 
