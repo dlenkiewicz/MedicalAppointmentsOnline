@@ -3,6 +3,8 @@ package com.medicalappointmentsonline.Services;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
@@ -10,6 +12,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.Query;
+import javax.persistence.RollbackException;
+import javax.persistence.TypedQuery;
 
 import org.vaadin.dialogs.ConfirmDialog;
 
@@ -61,6 +65,7 @@ public class AppointmentLayout extends CustomComponent {
     private ComboBox appTypeSelect;
     
     private Button hoursButton;
+    private Button closestAppointmentButton;
     
     private DateField dateSelect;
     
@@ -133,6 +138,37 @@ public class AppointmentLayout extends CustomComponent {
 			}
 		});
         hoursButton.setEnabled(false);
+
+        closestAppointmentButton = new Button("Najbliższa wizyta", new ClickListener() {
+			@Override
+			public void buttonClick(ClickEvent event) {
+				Date closestDate = null;
+				if(staffTable.getValue()!=null){
+					closestDate = closestAppointment((Staff) staffTable.getValue());
+				} else {
+					if(staff.size()>0)
+						closestDate = getMaxDate();
+					
+					for(Staff staffMember : staff){
+						Date tmp = closestAppointment(staffMember);
+						if(tmp!=null)
+							if(tmp.before(closestDate))
+								closestDate = tmp;
+					}
+				}
+				if(closestDate != null){
+					dateSelect.setValue(closestDate);
+				}
+				else {
+					Notification notif = new Notification("Uwaga",
+						    "Nie ma wolnych terminów!", Notification.TYPE_ERROR_MESSAGE);
+					notif.setPosition(Position.TOP_CENTER);
+					notif.setDelayMsec(8000);
+					notif.show(Page.getCurrent());
+				}
+			}
+		});
+        closestAppointmentButton.setEnabled(false);
         
         disableListener = false;
         
@@ -157,6 +193,7 @@ public class AppointmentLayout extends CustomComponent {
 		        			        			        		
 	                executeQueryStaffNull();
 	                hoursButton.setEnabled(false);
+	                closestAppointmentButton.setEnabled(true);
 	                
 	                Query query3 = entitymanager.createQuery("SELECT s FROM Staff s, AppointmentType a, Hours h "
 	                		+ "WHERE a.id = h.appointmentType.id AND h.staff.id = s.id AND a.id = :value1");
@@ -175,7 +212,7 @@ public class AppointmentLayout extends CustomComponent {
         staffTable.addValueChangeListener(new Property.ValueChangeListener() {  
         	@Override
 	        public void valueChange(ValueChangeEvent event) {
-	        	        		
+        		closestAppointmentButton.setEnabled(true);
         		if(staffTable.getValue()==null){
 	        		executeQueryStaffNull();
 	        		hoursButton.setEnabled(false);
@@ -200,7 +237,7 @@ public class AppointmentLayout extends CustomComponent {
 		        			Notification notif = new Notification("Uwaga",
 								    "Wybrany lekarz aktualnie nie przeprowadza żadnych wizyt!", Notification.TYPE_ERROR_MESSAGE);
 							notif.setPosition(Position.TOP_CENTER);
-							notif.setDelayMsec(2000);
+							notif.setDelayMsec(8000);
 							notif.show(Page.getCurrent());
 		        		}
 		        				
@@ -286,11 +323,15 @@ public class AppointmentLayout extends CustomComponent {
         verticalLayout.addComponent(appTypeSelect);
         verticalLayout.addComponent(dateSelect);
         verticalLayout.addComponent(hoursButton);
+        verticalLayout.addComponent(closestAppointmentButton);
         content.addComponent(verticalLayout);
         content.addComponent(staffTable);
         content.addComponent(appointmentTable);
         setCompositionRoot(content);
     }
+    
+    
+    
     
     @SuppressWarnings("unchecked")
 	private void executeQueryStaffNull(){
@@ -390,18 +431,25 @@ public class AppointmentLayout extends CustomComponent {
 								        	appointment.setAppointmentType((AppointmentType) appProp.getValue());
 								    	 	
 								        	appointment.setUser(user);
-											
-											entitymanager.getTransaction().begin();
-											entitymanager.persist(appointment);
-											entitymanager.getTransaction().commit();
-											
-											getUI().getNavigator().navigateTo(AppointmentsMainView.NAME);
-											Notification success = new Notification(
-							                        "Wizyta zarejestrowana pomyślnie");
-							                success.setDelayMsec(2000);
-							                success.setStyleName("bar success small");
-							                success.setPosition(Position.TOP_CENTER);
-							                success.show(Page.getCurrent());
+											try {
+												entitymanager.getTransaction().begin();
+												entitymanager.persist(appointment);
+												entitymanager.getTransaction().commit();
+												
+												getUI().getNavigator().navigateTo(AppointmentsMainView.NAME);
+												Notification success = new Notification(
+								                        "Wizyta zarejestrowana pomyślnie");
+								                success.setDelayMsec(4000);
+								                success.setStyleName("bar success small");
+								                success.setPosition(Position.TOP_CENTER);
+								                success.show(Page.getCurrent());
+											} catch (RollbackException e){
+												Notification notif = new Notification("Uwaga",
+													    "Masz 5 aktywnych wizyt, aby umówić kolejne skontaktuj się z nami.", Notification.TYPE_ERROR_MESSAGE);
+												notif.setPosition(Position.TOP_CENTER);
+												notif.setDelayMsec(8000);
+												notif.show(Page.getCurrent());
+											}
 						                } else {}
 						            }
 						        });
@@ -436,6 +484,58 @@ public class AppointmentLayout extends CustomComponent {
 		
         setAppointmentsTableColumns();
     }
+	
+	private Date closestAppointment(Staff staff){
+		if (staff == null)
+			return null;
+		
+		Calendar loopDate = Calendar.getInstance();
+		loopDate.setTime(getTodaysDate());
+		int dayOfWeek = loopDate.get(Calendar.DAY_OF_WEEK);
+		
+		Calendar limitDate = Calendar.getInstance();
+		limitDate.setTime(getTodaysDate());
+		limitDate.add(Calendar.DATE, 14);
+		
+		
+		List<Hours> hoursList = staff.getHours();
+		Collections.sort(hoursList, new Comparator<Hours>(){
+			@Override
+            public int compare(Hours lhs, Hours rhs) {
+                if (lhs.getDay() > rhs.getDay())
+                	return 1;
+                else if(lhs.getDay() == rhs.getDay()) {
+                	if(lhs.getHstart().after(rhs.getHstart()))
+                		return 1;
+                	else
+                		return -1;
+                } else
+                	return -1;
+            }
+		});
+		
+		int week = 0;
+		while(loopDate.getTimeInMillis()<limitDate.getTimeInMillis()){
+			for(Hours hour : hoursList){
+				loopDate.setTime(getTodaysDate());
+				int daysToAdd = hour.getDay()-dayOfWeek+week;
+				if(daysToAdd>=0){
+					loopDate.add(Calendar.DATE, daysToAdd);
+					if(loopDate.getTimeInMillis()>limitDate.getTimeInMillis())
+						break;
+					List<Hours> h = new ArrayList<Hours>();
+					h.add(hour);
+					if(h2a(h,loopDate.getTime()).size() > 0){
+						return loopDate.getTime();
+					}
+				}
+			}
+			week+=7;
+		}
+		
+		
+		return null;
+	}
     
     private List<Appointment> h2a(List<Hours> hours, Date date) {
     	EntityManagerFactory emfactory = Persistence.createEntityManagerFactory( "mao" );
