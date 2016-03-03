@@ -4,8 +4,8 @@ Repository for private projects.
 
 - MedicalAppointmentsOnline
 
-		Collaborator: kSzmit
+		Collaborators: kSzmit, dLenkiewicz
 
 		Technologies: Java, Eclipselink, Vaadin, PostgreSQL.
 
-		Description: Web application which facilitates an online system for making medical appointments. Provides interface for user, tracks history of appointments, allows complex searching and making appointment.
+		Description: Web application which facilitates an online system for making medical appointments. Provides interface for user, tracks history of appointments, allows complex searching and making appointments.
