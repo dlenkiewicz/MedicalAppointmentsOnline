@@ -1,8 +1,6 @@
-# PrivateApplications
+# MedicalAppointmentsOnline
 
-Repository for private projects.
-
-- MedicalAppointmentsOnline
+Repository for MedicalAppointmentsOnline project.
 
 	Collaborators: kSzmit, dLenkiewicz
 
